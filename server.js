@@ -1,26 +1,5 @@
-var app = require('http').createServer(handler),
-    io = require('socket.io').listen(app),
-    fs = require('fs'),
+var fs = require('fs'),
     Skyfall = require('./skyfall.js');
-
-
-// creating the server ( localhost:8000 ) 
-app.listen(8000);
-
-// on server started we can load our client.html page
-function handler(req, res) {
-  fs.readFile(__dirname + '/client.html', function(err, data) {
-    if (err) {
-      console.log(err);
-      res.writeHead(500);
-      return res.end('Error loading client.html');
-    }
-    res.writeHead(200);
-    res.end(data);
-  });
-}
-
-
 
 function touchSkyfall(servers) {
   for(var name in servers){
@@ -37,11 +16,14 @@ function touchSkyfall(servers) {
     Skyfall.addServer(name, address, port);
   }
 }
-touchSkyfall(servers);
 
-// creating a new websocket to keep the content updated without any AJAX request
-io.sockets.on('connection', function(socket) {
-  var obj = {test:'case'};
-  json = JSON.stringify(obj);
-  socket.volatile.emit('notification', json);
+var serverile = __dirname + '/servers.json';
+fs.readFile(serverile, 'utf8', function (err, data) {
+  if (err) {
+    console.log('Error: ' + err);
+    return;
+  }
+ 
+  servers = JSON.parse(data);
+  touchSkyfall(servers);
 });

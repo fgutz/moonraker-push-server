@@ -1,5 +1,24 @@
 var nodeproxy = require('nodeproxy');
 
+var app = require('http').createServer(handler),
+    fs = require('fs'),
+    io = require('socket.io').listen(app);
+
+app.listen(8000);
+
+// on server started we can load our client.html page
+function handler(req, res) {
+  fs.readFile(__dirname + '/client.html', function(err, data) {
+    if (err) {
+      console.log(err);
+      res.writeHead(500);
+      return res.end('Error loading client.html');
+    }
+    res.writeHead(200);
+    res.end(data);
+  });
+}
+
 module.exports = {
   _servers: {},
   _settings: {
@@ -18,8 +37,8 @@ module.exports = {
     if(!port) { port = 3007; }
     if(!start) { start = true; }
     
-    var io = require('socket.io-client');
-    var socket = io.connect('http://' + ip + ':' + port, {
+    var ioClient = require('socket.io-client');
+    var socket = ioClient.connect('http://' + ip + ':' + port, {
       'reconnect': true,
       'reconnection delay': 500,
       'max reconnection attempts': 5
@@ -46,14 +65,18 @@ module.exports = {
   },
 
   sysInfo: function(data) {
-    console.log(data);
+    console.log(data.hostname);
 
   },
   loadInfo: function(data) {
-    console.log(data);
-    //el.find('.load_1min').html(data.loadavg[0].toFixed(2));
-    //var uptime = this._convertTime(data.uptime);
-    //el.find('.uptime').html(uptime);
+    //console.log(data.loadavg[0].toFixed(2));
+    if (data.loadavg[0].toFixed(2) > 2) {
+      //console.log(data.loadavg[0].toFixed(2));
+      io.sockets.on('connection', function(socket) {
+        var json = data.loadavg[0].toFixed(2);
+        socket.volatile.emit('notification', json);
+      });
+    }
   },
   
   addListeners: function(server){
