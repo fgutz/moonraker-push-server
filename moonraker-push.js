@@ -1,24 +1,91 @@
-var nodeproxy = require('nodeproxy');
+var nodeproxy = require('nodeproxy'),
+    ioClient = require('socket.io-client');
 
-var app = require('http').createServer(handler),
-    fs = require('fs'),
-    io = require('socket.io').listen(app);
+module.exports = {
+  _servers: {},
 
-app.listen(8000);
-
-// on server started we can load our client.html page
-function handler(req, res) {
-  fs.readFile(__dirname + '/client.html', function(err, data) {
-    if (err) {
-      console.log(err);
-      res.writeHead(500);
-      return res.end('Error loading client.html');
+  getServers: function(serverName){
+    var _name = serverName || null;
+    if (_name !== null && this._servers[_name]){
+      return this._servers[_name];
+    } else {
+      return this._servers;
     }
-    res.writeHead(200);
-    res.end(data);
-  });
-}
+  },
 
+  addServer: function(serverName, ip, port){
+    if(!port) { port = 3007; }
+    
+    var socket = ioClient.connect('http://' + ip + ':' + port, {
+      'reconnect': true,
+      'reconnection delay': 500,
+      'max reconnection attempts': 5
+    });
+
+    var server = this._servers[serverName] = {
+      name: serverName,
+      ip: ip,
+      port: port,
+      socket: socket,
+      cpuTimes: {},
+      settings: {}
+    };
+
+    this.addListeners(server);
+    this.startServer(server);
+    return server;
+  },
+
+  startServer: function(server, opts){
+    if(!opts) { opts = {}; }
+    server.socket.emit('start', opts);
+  },
+  
+  addListeners: function(server){
+    var that = this;
+    var socket = server.socket;
+    
+    // connecting
+    socket.on('connecting', nodeproxy(function(){
+      console.log('connecting...');
+    }, server));
+    // connect
+    socket.on('connect', nodeproxy(function(){
+      console.log('connected');
+    }, server));
+    // connect_failed
+    socket.on('connect_failed', nodeproxy(function(){
+      console.log('Failed to connect to ' + this.name);
+    }, server));
+    // disconnect
+    socket.on('disconnect', nodeproxy(function(){
+      console.log('disconnected from ' + this.name);
+    }, server));
+    // reconnecting
+    socket.on('reconnecting', nodeproxy(function(){
+      console.log('reconnecting...');
+    }, server));
+    // reconnect
+    socket.on('reconnect', nodeproxy(function(transport_type, reconnectionAttempts){
+      console.log('reconnected to ' + this.name);
+      that.startServer(this.name, server.settings);
+    }, server));
+    // reconnect_failed
+    socket.on('reconnect_failed', nodeproxy(function(){
+      console.log('Failed to reconnect to ' + this.name);
+    }, server));
+    // error
+    socket.on('error', nodeproxy(function(msg){
+      console.log('error: '+msg);
+    }, server));
+    // message
+    socket.on('message', nodeproxy(function(msg, callback){
+      console.log(msg);
+    }, server));
+  }
+};
+
+/*
 module.exports = {
   _servers: {},
   _settings: {
@@ -37,7 +104,6 @@ module.exports = {
     if(!port) { port = 3007; }
     if(!start) { start = true; }
     
-    var ioClient = require('socket.io-client');
     var socket = ioClient.connect('http://' + ip + ':' + port, {
       'reconnect': true,
       'reconnection delay': 500,
@@ -69,19 +135,21 @@ module.exports = {
 
   },
   loadInfo: function(data) {
-    //console.log(data.loadavg[0].toFixed(2));
-    if (data.loadavg[0].toFixed(2) > 2) {
-      //console.log(data.loadavg[0].toFixed(2));
-      io.sockets.on('connection', function(socket) {
-        var json = data.loadavg[0].toFixed(2);
-        socket.volatile.emit('notification', json);
-      });
-    }
+    io.sockets.on('connection', function(_socket) {
+    
+
+      if (data.loadavg[0].toFixed(2) > 0.1) {
+        var info = data.loadavg[0].toFixed(2);
+        console.log(info);
+        _socket.emit('notification', info);
+      }
+    });
   },
   
   addListeners: function(server){
     var that = this;
     var socket = server.socket;
+    
     // connecting
     socket.on('connecting', nodeproxy(function(){
       console.log('connecting...');
@@ -92,11 +160,11 @@ module.exports = {
     }, server));
     // connect_failed
     socket.on('connect_failed', nodeproxy(function(){
-      console.log('Failed to connect to ' + that.name);
+      console.log('Failed to connect to ' + this.name);
     }, server));
     // disconnect
     socket.on('disconnect', nodeproxy(function(){
-      console.log('disconnected from ' + that.name);
+      console.log('disconnected from ' + this.name);
     }, server));
     // reconnecting
     socket.on('reconnecting', nodeproxy(function(){
@@ -104,12 +172,12 @@ module.exports = {
     }, server));
     // reconnect
     socket.on('reconnect', nodeproxy(function(transport_type, reconnectionAttempts){
-      console.log('reconnected to ' + that.name);
-      that.startServer(that.name, server.settings);
+      console.log('reconnected to ' + this.name);
+      that.startServer(this.name, server.settings);
     }, server));
     // reconnect_failed
     socket.on('reconnect_failed', nodeproxy(function(){
-      console.log('Failed to reconnect to ' + that.name);
+      console.log('Failed to reconnect to ' + this.name);
     }, server));
     // error
     socket.on('error', nodeproxy(function(msg){
@@ -176,4 +244,4 @@ module.exports = {
     var result = (days > 0 ? days + ' days ' : '') + (hours < 10 ? "0" + hours : hours) + "hrs " + (minutes < 10 ? "0" + minutes : minutes) + "min " + (seconds  < 10 ? "0" + seconds : seconds) + 'sec';
     return result;
   }
-};
+};*/
