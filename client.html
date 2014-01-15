@@ -16,7 +16,8 @@
     socket.on('notification', function (data) {
         // convert the json string into a valid javascript object
         //var _data = JSON.parse(data.test);
-        $('#notification')[0].innerHTML += data + " <br>";
+        var result = JSON.parse(data);
+        $('#notification')[0].innerHTML += result.ip + ": " + result["1min"] + " <br>";
     });
     </script>
     </body>
