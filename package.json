@@ -1,11 +1,12 @@
 {
   "name": "moonraker",
-  "description" : "node push notification server to work with TMG's Skyfall",
+  "description": "node push notification server to work with TMG's Skyfall",
   "dependencies": {
     "socket.io": ">= 0.9.16",
-    "socket.io-client" : ">= 0.9.16",
-    "nodeproxy" : ">= 1.0.0",
-    "node-gcm" : ">= 0.9.8",
-    "apn" : ">= 1.4.3"
+    "socket.io-client": ">= 0.9.16",
+    "nodeproxy": ">= 1.0.0",
+    "node-gcm": ">= 0.9.8",
+    "apn": ">= 1.4.3",
+    "node-persist": ">= 0.0.1"
   }
 }

@@ -23,8 +23,7 @@ function handler(req, res) {
 
 io.set('log level', 2);
 
-io.sockets.on('connection', function(_socket){
-
+io.sockets.on('connection', function(outSocket){
 
   function loadInfo(server) {
     server.socket.on('loadInfo', function(data){
@@ -36,7 +35,7 @@ io.sockets.on('connection', function(_socket){
           "1min": data.loadavg[0].toFixed(2)
         };
         info = JSON.stringify(info);
-        _socket.emit('notification', info);
+        outSocket.emit('notification', info);
       }
 
     });
@@ -61,7 +60,7 @@ io.sockets.on('connection', function(_socket){
     }
   }
 
-  // Get list of servers from local json file
+  // read servers.json file and store in var
   var serverile = __dirname + '/servers.json';
   fs.readFile(serverile, 'utf8', function (err, data) {
     if (err) {
@@ -69,7 +68,7 @@ io.sockets.on('connection', function(_socket){
       return;
     }
    
-    servers = JSON.parse(data);
+    var servers = JSON.parse(data);
     begin(servers);
   });
 
